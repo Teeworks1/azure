@@ -144,6 +144,10 @@ resource "azurerm_kubernetes_cluster" "aks" {
 #       azuread_group.aks_admins.object_id
 #     ]
 #   }
+ key_vault_secrets_provider {
+   secret_rotation_enabled =  true
+   #secret_rotation_interval =  "PT1H"
+ }
 
   # https://docs.microsoft.com/en-ie/azure/governance/policy/concepts/policy-for-kubernetes
   azure_policy_enabled = false
@@ -216,123 +220,123 @@ resource "azurerm_kubernetes_cluster" "aks" {
 # }
 
 
-resource "azurerm_kubernetes_cluster" "velero" {
-  name                              = "velero"
-  location                          = "canada east"
-  resource_group_name               = "velerobackup"
-  dns_prefix                        = "velero-backup"
-  kubernetes_version                = var.kubernetes_version
-  sku_tier                          = "Free"
-  role_based_access_control_enabled = true
-  tags = {
-    environment = "staging"
-  }
-  default_node_pool {
-    name                 = "default"
-    orchestrator_version = var.kubernetes_version
-    vm_size              = "Standard_D2"
-    node_count           = 1
-    max_pods             = 90
+# resource "azurerm_kubernetes_cluster" "velero" {
+#   name                              = "velero"
+#   location                          = "canada east"
+#   resource_group_name               = "velerobackup"
+#   dns_prefix                        = "velero-backup"
+#   kubernetes_version                = var.kubernetes_version
+#   sku_tier                          = "Free"
+#   role_based_access_control_enabled = true
+#   tags = {
+#     environment = "staging"
+#   }
+#   default_node_pool {
+#     name                 = "default"
+#     orchestrator_version = var.kubernetes_version
+#     vm_size              = "Standard_D2"
+#     node_count           = 1
+#     max_pods             = 90
 
-  upgrade_settings {
-      drain_timeout_in_minutes =  0
-      max_surge =  "10%"
-      node_soak_duration_in_minutes =  0
-    }
-  }
+#   upgrade_settings {
+#       drain_timeout_in_minutes =  0
+#       max_surge =  "10%"
+#       node_soak_duration_in_minutes =  0
+#     }
+#   }
 
-#   linux_profile {
-#     admin_username = var.admin_username
+# #   linux_profile {
+# #     admin_username = var.admin_username
 
-#     ssh_key {
-#       key_data = chomp(
+# #     ssh_key {
+# #       key_data = chomp(
        
-#           tls_private_key.ssh.public_key_openssh,
+# #           tls_private_key.ssh.public_key_openssh,
         
-#       )
-#     }
+# #       )
+# #     }
+# #   }
+
+#   # managed identity block
+#   # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#identity
+#   identity {
+#     type = "SystemAssigned"
 #   }
 
-  # managed identity block
-  # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#identity
-  identity {
-    type = "SystemAssigned"
-  }
+#   # https://docs.microsoft.com/en-us/azure/aks/azure-ad-rbac
+# #   azure_active_directory_role_based_access_control {
+# #     # managed = true
+# #     admin_group_object_ids = [
+# #       azuread_group.aks_admins.object_id
+# #     ]
+# #   }
 
-  # https://docs.microsoft.com/en-us/azure/aks/azure-ad-rbac
-#   azure_active_directory_role_based_access_control {
-#     # managed = true
-#     admin_group_object_ids = [
-#       azuread_group.aks_admins.object_id
-#     ]
+#   # https://docs.microsoft.com/en-ie/azure/governance/policy/concepts/policy-for-kubernetes
+#   azure_policy_enabled = false
+
+#   # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#oms_agent
+#   # conditional dynamic block
+# #   dynamic "oms_agent" {
+# #     for_each = var.aks_container_insights_enabled == true ? [1] : []
+# #     content {
+# #       log_analytics_workspace_id = azurerm_log_analytics_workspace.aks[0].id
+# #     }
+# #   }
+
+#   # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#network_plugin
+#   network_profile {
+#     load_balancer_sku = "basic"
+#     outbound_type     = "loadBalancer"
+#     network_plugin    = "azure"
+#     network_policy    = "azure"
+#     service_cidr      = "10.0.0.0/16"
+#     dns_service_ip    = "10.0.0.10"
+#     # docker_bridge_cidr = "172.17.0.1/16"
 #   }
 
-  # https://docs.microsoft.com/en-ie/azure/governance/policy/concepts/policy-for-kubernetes
-  azure_policy_enabled = false
+#   # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#workload_identity_enabled
+#   # https://learn.microsoft.com/en-us/azure/aks/workload-identity-deploy-cluster#register-the-enableworkloadidentitypreview-feature-flag
+#   oidc_issuer_enabled       = true
+#   workload_identity_enabled = true
+# }
 
-  # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#oms_agent
-  # conditional dynamic block
-#   dynamic "oms_agent" {
-#     for_each = var.aks_container_insights_enabled == true ? [1] : []
-#     content {
-#       log_analytics_workspace_id = azurerm_log_analytics_workspace.aks[0].id
-#     }
-#   }
+# Add role to access AKS Resource View
+# https://docs.microsoft.com/en-us/azure/aks/kubernetes-portal
+# resource "azurerm_role_assignment" "aks_portal_resource_view" {
+#   principal_id         = azuread_group.aks_admins.object_id
+#   role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
+#   scope                = azurerm_kubernetes_cluster.aks.id
+# }
 
-  # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#network_plugin
-  network_profile {
-    load_balancer_sku = "basic"
-    outbound_type     = "loadBalancer"
-    network_plugin    = "azure"
-    network_policy    = "azure"
-    service_cidr      = "10.0.0.0/16"
-    dns_service_ip    = "10.0.0.10"
-    # docker_bridge_cidr = "172.17.0.1/16"
-  }
+# Add existing AAD group as a member to the <AKS_CLUSTER_NAME>-aks-administrators group
+# data "azuread_group" "existing_aks_admins" {
+#   display_name     = var.aks_admins_aad_group_name
+#   security_enabled = true
+# }
 
-  # https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs/resources/kubernetes_cluster#workload_identity_enabled
-  # https://learn.microsoft.com/en-us/azure/aks/workload-identity-deploy-cluster#register-the-enableworkloadidentitypreview-feature-flag
-  oidc_issuer_enabled       = true
-  workload_identity_enabled = true
-}
+# resource "azuread_group_member" "existing_aks_admins" {
+#   group_object_id = azuread_group.example.id
+#   #   member_object_id = data.azuread_group.existing_aks_admins.id
+#   member_object_id = data.azuread_group.existing_aks_admins.object_id
 
-# # Add role to access AKS Resource View
-# # https://docs.microsoft.com/en-us/azure/aks/kubernetes-portal
-# # resource "azurerm_role_assignment" "aks_portal_resource_view" {
-# #   principal_id         = azuread_group.aks_admins.object_id
-# #   role_definition_name = "Azure Kubernetes Service RBAC Cluster Admin"
-# #   scope                = azurerm_kubernetes_cluster.aks.id
-# # }
+#   depends_on = [azurerm_role_assignment.aks_portal_resource_view]
+# }
 
-# # Add existing AAD group as a member to the <AKS_CLUSTER_NAME>-aks-administrators group
-# # data "azuread_group" "existing_aks_admins" {
-# #   display_name     = var.aks_admins_aad_group_name
-# #   security_enabled = true
-# # }
+# data "azuread_user" "example" {
+#   user_principal_name = "ochuko@tellenchuksgmail.onmicrosoft.com"
+# }
 
-# # resource "azuread_group_member" "existing_aks_admins" {
-# #   group_object_id = azuread_group.example.id
-# #   #   member_object_id = data.azuread_group.existing_aks_admins.id
-# #   member_object_id = data.azuread_group.existing_aks_admins.object_id
+# resource "azuread_group" "aks_admins" {
+#   display_name     = "my_group"
+#   security_enabled = true
+# }
 
-# #   depends_on = [azurerm_role_assignment.aks_portal_resource_view]
-# # }
-
-# # data "azuread_user" "example" {
-# #   user_principal_name = "ochuko@tellenchuksgmail.onmicrosoft.com"
-# # }
-
-# # resource "azuread_group" "aks_admins" {
-# #   display_name     = "my_group"
-# #   security_enabled = true
-# # }
-
-# # resource "azuread_group_member" "example" {
-# #   group_object_id  = azuread_group.example.object_id
-# #   member_object_id = data.azuread_user.example.object_id
-# # }
-# # resource "azurerm_role_assignment" "example" {
-# #   principal_id         = data.azuread_user.example.object_id
-# #   role_definition_name = "Reader"
-# #   scope                = azurerm_kubernetes_cluster.aks.id
-# # }
+# resource "azuread_group_member" "example" {
+#   group_object_id  = azuread_group.example.object_id
+#   member_object_id = data.azuread_user.example.object_id
+# }
+# resource "azurerm_role_assignment" "example" {
+#   principal_id         = data.azuread_user.example.object_id
+#   role_definition_name = "Reader"
+#   scope                = azurerm_kubernetes_cluster.aks.id
+# }
