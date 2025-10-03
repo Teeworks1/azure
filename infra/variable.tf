@@ -18,7 +18,7 @@ variable "azurerm_kubernetes_cluster_name" {
 variable "kubernetes_version" {
   description = "Kubernetes version"
   type        = string
-  default     = "1.31.1"
+  default     = "1.28.1"
 
 }
 variable "agent_pool_profile_vm_size" {
