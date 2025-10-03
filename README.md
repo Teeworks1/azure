@@ -1,1 +1,1 @@
- this is the test dample fo the code deployed to azure
+A repository to set up Infra and test automation using Pipelines  in Azure
